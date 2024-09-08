@@ -46,20 +46,35 @@ namespace CCZPDecoder
                     }
 					var outpath = Path.Combine(thisoutdir, outfilename);
 					var bytes = File.ReadAllBytes(file);
-                    if (bytes[0] != 'C' || bytes[1] != 'C' || bytes[2] != 'Z' || bytes[3] != 'p')
+                    if (bytes[0] != 'C' || bytes[1] != 'C' || bytes[2] != 'Z')
                     {
                         continue;
                     }
-                    Console.WriteLine($"解密：{file}");
-                    var enclen = (bytes.Length - 12) / 4;
-                    var data = new uint[enclen];
-                    for (var i = 0; i < enclen; i++)
+
+                    byte[] decbuff;
+					if (bytes[3] == 'p')
                     {
-                        data[i] = BitConverter.ToUInt32(bytes, 12 + i * 4);
-                    }
-                    var buff = Decode(data, enclen, bytes, out var len);
-                    buff = Decompress(buff, len);
-                    File.WriteAllBytes(outpath, buff);
+                        Console.WriteLine($"解密：{file}");
+                        var enclen = (bytes.Length - 12) / 4;
+                        var data = new uint[enclen];
+                        for (var i = 0; i < enclen; i++)
+                        {
+                            data[i] = BitConverter.ToUInt32(bytes, 12 + i * 4);
+                        }
+						decbuff = Decode(data, enclen, bytes, out var len);
+						decbuff = Decompress(decbuff, len);
+					}
+                    else if (bytes[3] == '!')
+					{
+                        var len = bytes.Length - 12;
+                        decbuff = Decompress(bytes.Skip(12).ToArray(), len);
+					}
+                    else
+                    {
+						continue;
+					}
+                    
+                    File.WriteAllBytes(outpath, decbuff);
                 }
                 Console.WriteLine("完成！");
                 Console.Read();
